@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Printing;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
@@ -78,7 +79,61 @@ namespace BeehiveManagementSystem
 
     public class Bee
     {
-        public Bee()
+        public string Job { get; }
+
+        public Bee(string job)
+        {
+            Job = job;
+        }
+
+        //lets each Bee subclass define the amount of honey it consumes each shift
+        public virtual string CostPerShift { get; } 
+
+        //pass consumed honey to the method in honeyvault, if true then this method will call DoJob
+        public void WorkTheNextShift(float honeyconsumed)
+        {
+            if (HoneyVault.ConsumeHoney(honeyconsumed))
+                DoJob();
+            else
+                return;
+        }
+
+        //don't know if this is supposed to be in this exact spot
+        public void DoJob()
+        {
+
+        }
+    }
+
+    public class Queen : Bee
+    {
+        public Queen() : base("Queen")
+        {
+
+        }
+    }
+
+    //each of the subclasses will include overrides to DoJob and CostPerShift
+
+    public class HoneyManufacturer : Bee
+    {
+        public HoneyManufacturer() : base("Honey Manufacturer")
+        {
+
+        }
+    }
+
+    public class NectarCollector : Bee
+    {
+        public NectarCollector() : base("Nectar Collector")
+        {
+
+        }
+    }
+
+    public class EggCare : Bee
+    {
+        public EggCare() : base("Egg Care")
         {
 
         }
