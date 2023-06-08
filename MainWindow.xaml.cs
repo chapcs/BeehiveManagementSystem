@@ -87,7 +87,7 @@ namespace BeehiveManagementSystem
         }
 
         //lets each Bee subclass define the amount of honey it consumes each shift
-        public virtual string CostPerShift { get; } 
+        public virtual float CostPerShift { get; } 
 
         //pass consumed honey to the method in honeyvault, if true then this method will call DoJob
         public void WorkTheNextShift(float honeyconsumed)
@@ -99,7 +99,13 @@ namespace BeehiveManagementSystem
         }
 
         //don't know if this is supposed to be in this exact spot
-        public void DoJob()
+        public virtual void DoJob()
+        {
+
+        }
+
+        //here to add new workers to the Bee[] array in class Queen
+        public void AddWorker()
         {
 
         }
@@ -107,9 +113,41 @@ namespace BeehiveManagementSystem
 
     public class Queen : Bee
     {
+        private Bee[] workers;
+        public float eggs;
+
+        const float EGGS_PER_SHIFT = 0.45f;
+        const float HONEY_PER_UNASSIGNED_WORKER = 0.5f;
+
         public Queen() : base("Queen")
         {
 
+        }
+
+        public override float CostPerShift { get { return 2.15f; } }
+
+        public void AssignBee(string job)
+        {
+            switch (job)
+            {
+                case "Honey Manufacturer":
+                    AddWorker(new HoneyManufacturer(this));
+                    break;
+                case "Nectar Collector":
+                    AddWorker(new NectarCollector(this));
+                    break;
+                case "Egg Care":
+                    AddWorker(new EggCare(this));
+                    break;
+                default:
+                    Console.WriteLine("This should never be called");
+                    break;
+            }
+        }
+
+        public override void DoJob()
+        {
+            base.DoJob();
         }
     }
 
@@ -121,6 +159,13 @@ namespace BeehiveManagementSystem
         {
 
         }
+
+        public override float CostPerShift { get { return 1.7f; } }
+
+        public override void DoJob()
+        {
+            base.DoJob();
+        }
     }
 
     public class NectarCollector : Bee
@@ -129,6 +174,13 @@ namespace BeehiveManagementSystem
         {
 
         }
+
+        public override float CostPerShift { get { return 1.95f; } }
+
+        public override void DoJob()
+        {
+            base.DoJob();
+        }
     }
 
     public class EggCare : Bee
@@ -136,6 +188,13 @@ namespace BeehiveManagementSystem
         public EggCare() : base("Egg Care")
         {
 
+        }
+
+        public override float CostPerShift { get { return 1.35f; } }
+
+        public override void DoJob()
+        {
+            base.DoJob();
         }
     }
 }
