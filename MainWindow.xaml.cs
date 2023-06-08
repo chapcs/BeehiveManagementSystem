@@ -86,10 +86,8 @@ namespace BeehiveManagementSystem
             Job = job;
         }
 
-        //lets each Bee subclass define the amount of honey it consumes each shift
         public virtual float CostPerShift { get; } 
 
-        //pass consumed honey to the method in honeyvault, if true then this method will call DoJob
         public void WorkTheNextShift(float honeyconsumed)
         {
             if (HoneyVault.ConsumeHoney(honeyconsumed))
@@ -98,7 +96,6 @@ namespace BeehiveManagementSystem
                 return;
         }
 
-        //don't know if this is supposed to be in this exact spot
         public virtual void DoJob()
         {
 
@@ -111,17 +108,20 @@ namespace BeehiveManagementSystem
         }
     }
 
-    public class Queen : Bee
+    public class Queen : Bee //still need to start off with 3 
     {
         private Bee[] workers;
         public float eggs;
+        public float unassignedWorkers;
 
         const float EGGS_PER_SHIFT = 0.45f;
         const float HONEY_PER_UNASSIGNED_WORKER = 0.5f;
 
         public Queen() : base("Queen")
         {
-
+            AssignBee("Honey Manufacturer");
+            AssignBee("Nectar Collector");
+            AssignBee("Egg Care");
         }
 
         public override float CostPerShift { get { return 2.15f; } }
@@ -143,15 +143,37 @@ namespace BeehiveManagementSystem
                     Console.WriteLine("This should never be called");
                     break;
             }
+            UpdateStatusReport();
         }
 
         public override void DoJob()
         {
-            base.DoJob();
+            eggs += EGGS_PER_SHIFT;
+            foreach (var worker in workers)
+            {
+                base.WorkTheNextShift(CostPerShift);
+            }
+            HoneyVault.ConsumeHoney(HONEY_PER_UNASSIGNED_WORKER * workers.Length);//does this really do what we are wanting it to
+            UpdateStatusReport();
+        }
+
+        public void CareForEggs(float eggsToConvert)
+        {
+            if (eggs >= eggsToConvert)
+            {
+                eggs -= eggsToConvert;
+                unassignedWorkers += eggsToConvert;
+            }
+            else
+                return;
+        }
+
+        private string UpdateStatusReport() //needs reconfigured and reports to be sent out for each method
+        {
+            HoneyVault.StatusReport;
         }
     }
 
-    //each of the subclasses will include overrides to DoJob and CostPerShift
 
     public class HoneyManufacturer : Bee
     {
@@ -194,7 +216,7 @@ namespace BeehiveManagementSystem
 
         public override void DoJob()
         {
-            base.DoJob();
+            base.DoJob(); //call queens CareForEggs
         }
     }
 }
