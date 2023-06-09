@@ -13,6 +13,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
+using BeehiveManagementSystem;
 
 namespace BeehiveManagementSystem
 {
@@ -21,45 +22,58 @@ namespace BeehiveManagementSystem
     /// </summary>
     public partial class MainWindow : Window
     {
+        private Queen queen = new Queen();
         public MainWindow()
         {
             InitializeComponent();
+            statusReport.Text = queen.StatusReport;
+        }
+
+        private void WorkShift_Click(object sender, RoutedEventArgs e)
+        {
+            queen.WorkTheNextShift();
+            statusReport.Text = queen.StatusReport;
+        }
+
+        private void AssignJob_Click(object sender, RoutedEventArgs e)
+        {
+            queen.AssignBee(jobSelector.Text);
+            statusReport.Text = queen.StatusReport;
         }
     }
 
-    public static class HoneyVault
+    static class HoneyVault
     {
-        const float NECTAR_CONVERSION_RATIO = .19f;
-        const float LOW_LEVEL_WARNING = 10f;
+        public const float NECTAR_CONVERSION_RATIO = .19f;
+        public const float LOW_LEVEL_WARNING = 10f;
 
         private static float honey = 25f;
         private static float nectar = 100f;
 
-        static string StatusReport
+        public static string StatusReport
         {
             get
             {
                 string warning = "";
                 if (honey < LOW_LEVEL_WARNING)
-                    warning = "LOW HONEY - ADD MANUFACTURER\n";
+                    warning += "LOW HONEY - ADD MANUFACTURER\n";
                 else if (nectar < LOW_LEVEL_WARNING)
                     warning += "LOW NECTAR - ADD COLLECTOR\n";
-                return $"Honey: {honey}\nNectar: {nectar}\n" + warning;
+                return $"Honey: {honey:0.0}\nNectar: {nectar:0.0}\n" + warning;
             }
         }
 
         public static void ConvertNectarToHoney(float amount)
         {
-            if (amount <= nectar)
+            if (amount > nectar)
                 amount = nectar;
-            else
-                nectar -= amount;
+            nectar -= amount;
             honey += (amount * NECTAR_CONVERSION_RATIO);
         }
 
         public static bool ConsumeHoney(float amount)
         {
-            if (amount >= honey)
+            if (honey >= amount)
             {
                 honey -= amount;
                 return true;
@@ -72,50 +86,41 @@ namespace BeehiveManagementSystem
 
         public static void CollectNectar(float amount)
         {
-            if (amount > 0)
+            if (amount > 0f)
                 nectar += amount;
         }
     }
 
     public class Bee
     {
-        public string Job { get; }
-
+        public virtual float CostPerShift { get; }
+        public string Job { get; private set; }
         public Bee(string job)
         {
             Job = job;
         }
 
-        public virtual float CostPerShift { get; } 
-
-        public void WorkTheNextShift(float honeyconsumed)
+        public void WorkTheNextShift()
         {
-            if (HoneyVault.ConsumeHoney(honeyconsumed))
+            if (HoneyVault.ConsumeHoney(CostPerShift))
                 DoJob();
-            else
-                return;
         }
 
-        public virtual void DoJob()
-        {
-
-        }
-
-        //here to add new workers to the Bee[] array in class Queen
-        public void AddWorker()
-        {
-
-        }
+        protected virtual void DoJob() { }
     }
 
-    public class Queen : Bee //still need to start off with 3 
+    public class Queen : Bee
     {
-        private Bee[] workers;
-        public float eggs;
-        public float unassignedWorkers;
+        public const float EGGS_PER_SHIFT = 0.45f;
+        public const float HONEY_PER_UNASSIGNED_WORKER = 0.5f;
 
-        const float EGGS_PER_SHIFT = 0.45f;
-        const float HONEY_PER_UNASSIGNED_WORKER = 0.5f;
+        //forgot to generate the array here with Bee[0]
+        private Bee[] workers = new Bee[0]; 
+        public float eggs = 0;
+        public float unassignedWorkers = 3;
+
+        public string StatusReport { get; private set; }
+        public override float CostPerShift { get { return 2.15f; } }
 
         public Queen() : base("Queen")
         {
@@ -124,17 +129,26 @@ namespace BeehiveManagementSystem
             AssignBee("Egg Care");
         }
 
-        public override float CostPerShift { get { return 2.15f; } }
+        //forgot this method almost entirely and put it in the Bee class
+        private void AddWorker(Bee worker) 
+        {
+            if (unassignedWorkers >= 1)
+            {
+                unassignedWorkers--;
+                Array.Resize(ref workers, workers.Length + 1);
+                workers[workers.Length - 1] = worker;
+            }
+        }
 
         public void AssignBee(string job)
         {
             switch (job)
             {
                 case "Honey Manufacturer":
-                    AddWorker(new HoneyManufacturer(this));
+                    AddWorker(new HoneyManufacturer());
                     break;
                 case "Nectar Collector":
-                    AddWorker(new NectarCollector(this));
+                    AddWorker(new NectarCollector());
                     break;
                 case "Egg Care":
                     AddWorker(new EggCare(this));
@@ -146,14 +160,14 @@ namespace BeehiveManagementSystem
             UpdateStatusReport();
         }
 
-        public override void DoJob()
+        protected override void DoJob()
         {
             eggs += EGGS_PER_SHIFT;
             foreach (var worker in workers)
             {
-                base.WorkTheNextShift(CostPerShift);
+                worker.WorkTheNextShift();
             }
-            HoneyVault.ConsumeHoney(HONEY_PER_UNASSIGNED_WORKER * workers.Length);//does this really do what we are wanting it to
+            HoneyVault.ConsumeHoney(HONEY_PER_UNASSIGNED_WORKER * unassignedWorkers);//had to changed this to unassignedWorkers, originally a mistype with workers.Length
             UpdateStatusReport();
         }
 
@@ -164,59 +178,65 @@ namespace BeehiveManagementSystem
                 eggs -= eggsToConvert;
                 unassignedWorkers += eggsToConvert;
             }
-            else
-                return;
         }
 
-        private string UpdateStatusReport() //needs reconfigured and reports to be sent out for each method
+        private void UpdateStatusReport()
         {
-            HoneyVault.StatusReport;
+            StatusReport = $"Vault report: \n{HoneyVault.StatusReport}\n" +
+                $"\nEgg count: {eggs}\nUnassigned Workers: {unassignedWorkers}\n" +
+                $"{WorkerStatus("Honey Manufacturer")}\n{WorkerStatus("Nectar Collector")}\n{WorkerStatus("Egg Care")}\n" +
+                $"TOTAL WORKERS: {workers.Length}";
+        }
+
+        public string WorkerStatus(string job)
+        {
+            int count = 0;
+            foreach (var worker in workers)
+                if (worker.Job == job) count++;
+            string s = "s";
+            if (count == 1) s = "";
+            return $"{count} {job} bee{s}";
         }
     }
 
 
     public class HoneyManufacturer : Bee
     {
-        public HoneyManufacturer() : base("Honey Manufacturer")
-        {
-
-        }
-
+        public const float NECTAR_PROCESSED_PER_SHIFT = 33.15f;
+        public HoneyManufacturer() : base("Honey Manufacturer") { }
         public override float CostPerShift { get { return 1.7f; } }
 
-        public override void DoJob()
+        protected override void DoJob()
         {
-            base.DoJob();
+            HoneyVault.ConvertNectarToHoney(NECTAR_PROCESSED_PER_SHIFT);
         }
     }
 
     public class NectarCollector : Bee
     {
-        public NectarCollector() : base("Nectar Collector")
-        {
-
-        }
-
+        public const float NECTAR_COLLECTED_PER_SHIFT = 33.25f;
+        public NectarCollector() : base("Nectar Collector") { }
         public override float CostPerShift { get { return 1.95f; } }
 
-        public override void DoJob()
+        protected override void DoJob()
         {
-            base.DoJob();
+            HoneyVault.CollectNectar(NECTAR_COLLECTED_PER_SHIFT);
         }
     }
 
     public class EggCare : Bee
     {
-        public EggCare() : base("Egg Care")
+        public const float CARE_PER_SHIFT = 0.15f;
+        private Queen queen;
+        public EggCare(Queen queen) : base("Egg Care")
         {
-
+            this.queen = queen;
         }
-
         public override float CostPerShift { get { return 1.35f; } }
 
-        public override void DoJob()
+        protected override void DoJob()
         {
-            base.DoJob(); //call queens CareForEggs
+            queen.CareForEggs(CARE_PER_SHIFT);
         }
     }
 }
