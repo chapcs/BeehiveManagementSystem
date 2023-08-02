@@ -103,7 +103,7 @@ namespace BeehiveManagementSystem
 
     interface IWorker
     {
-        string Job { get; }
+        string Job { get; } //Interface requires a get accessor here, this is different from an automatic property
         void WorkTheNextShift();
     }
 
@@ -130,7 +130,7 @@ namespace BeehiveManagementSystem
         public const float EGGS_PER_SHIFT = 0.45f;
         public const float HONEY_PER_UNASSIGNED_WORKER = 0.5f;
 
-        //forgot to generate the array here with Bee[0]
+        //forgot to generate the array here
         private IWorker[] workers = new IWorker[0]; 
         public float eggs = 0;
         public float unassignedWorkers = 3;
