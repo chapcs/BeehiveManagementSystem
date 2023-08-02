@@ -101,7 +101,13 @@ namespace BeehiveManagementSystem
         }
     }
 
-    public abstract class Bee
+    interface IWorker
+    {
+        string Job { get; }
+        void WorkTheNextShift();
+    }
+
+    public abstract class Bee : IWorker
     {
         public abstract float CostPerShift { get; }
         public string Job { get; private set; }
@@ -125,7 +131,7 @@ namespace BeehiveManagementSystem
         public const float HONEY_PER_UNASSIGNED_WORKER = 0.5f;
 
         //forgot to generate the array here with Bee[0]
-        private Bee[] workers = new Bee[0]; 
+        private IWorker[] workers = new IWorker[0]; 
         public float eggs = 0;
         public float unassignedWorkers = 3;
 
@@ -140,7 +146,7 @@ namespace BeehiveManagementSystem
         }
 
         //forgot this method almost entirely and put it in the Bee class
-        private void AddWorker(Bee worker) 
+        private void AddWorker(IWorker worker) 
         {
             if (unassignedWorkers >= 1)
             {
@@ -201,7 +207,7 @@ namespace BeehiveManagementSystem
         public string WorkerStatus(string job)
         {
             int count = 0;
-            foreach (var worker in workers)
+            foreach (IWorker worker in workers)
                 if (worker.Job == job) count++;
             string s = "s";
             if (count == 1) s = "";
